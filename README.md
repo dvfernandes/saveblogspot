@@ -1,2 +1,2 @@
 # saveblogspot
-Save blog from blogspot
+Save blog from blogspot to a local folder.
