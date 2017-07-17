@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -61,7 +62,6 @@ namespace BlogspotToHtmlBook
 
         private static void RemoveDuplicateFilenames(string outputFolder)
         {
-            //remove duplicate filenames
             foreach(BlogPost post in postCollection)
             {
                 while (true)
@@ -121,6 +121,47 @@ namespace BlogspotToHtmlBook
             }
         }
 
+        private static void LoadImagesAndChangeHtml(string outputFolder)
+        {
+            string imgDir = $"{outputFolder}\\images";
+
+            Directory.CreateDirectory(imgDir);
+
+            foreach (BlogPost post in postCollection)
+            {
+                HtmlDocument htmlDocument = new HtmlDocument();
+                htmlDocument.LoadHtml(post.BodyHtml);
+
+                HtmlNodeCollection imgs = htmlDocument.DocumentNode.SelectNodes("//img");
+
+                if (imgs != null)
+                {
+                    Console.WriteLine($"Getting blog post images: { post.Title }");
+
+                    foreach (HtmlNode img in imgs)
+                    {
+                        string href = img.ParentNode.GetAttributeValue("href", null);
+
+                        if (href.StartsWith("//"))
+                        {
+                            href = "https:" + href;
+                        }
+
+                        string filename = $"{ imgDir }\\{ href.Replace('/', '.').Replace(':', '.') }";
+                        using (WebClient client = new WebClient())
+                        {
+                            client.DownloadFile(new Uri(href), filename);
+                        }
+
+                        img.ParentNode.SetAttributeValue("href", "images/" + Path.GetFileName(filename));
+                        img.SetAttributeValue("src", "images/" + Path.GetFileName(filename));
+                    }
+
+                    post.BodyHtml = htmlDocument.DocumentNode.OuterHtml;
+                }
+            }
+        }
+
         static void Main(string[] args)
         {
             postCollection = new Stack<BlogPost>();
@@ -134,6 +175,7 @@ namespace BlogspotToHtmlBook
             RemoveDuplicateFilenames(outputFolder);
 
             CreatePosts(outputFolder);
+            LoadImagesAndChangeHtml(outputFolder);
             CreateIndex(outputFolder);
 
             Console.WriteLine($"Finish. Number of posts processed: {  postCollection.Count }");
