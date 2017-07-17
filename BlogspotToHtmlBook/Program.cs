@@ -126,7 +126,8 @@ namespace BlogspotToHtmlBook
             string imgDir = $"{outputFolder}\\images";
 
             Directory.CreateDirectory(imgDir);
-
+            long filenameKey = 0;
+            
             foreach (BlogPost post in postCollection)
             {
                 HtmlDocument htmlDocument = new HtmlDocument();
@@ -136,7 +137,7 @@ namespace BlogspotToHtmlBook
 
                 if (imgs != null)
                 {
-                    Console.WriteLine($"Getting blog post images: { post.Title }");
+                    Console.WriteLine($"Getting blog post images: { post.Title.Replace('\n', '') }");
 
                     foreach (HtmlNode img in imgs)
                     {
@@ -146,15 +147,20 @@ namespace BlogspotToHtmlBook
                         {
                             href = "https:" + href;
                         }
-
-                        string filename = $"{ imgDir }\\{ href.Replace('/', '.').Replace(':', '.') }";
+                        
+                        string filename = href.Split('/').Last();
+                        filename = $"{ filenameKey }.{ filename.Split('.').Last() }";
+                        filenameKey++;
+                        
+                        string filepath = $"{ imgDir }\\{ filename }";
+                        
                         using (WebClient client = new WebClient())
                         {
-                            client.DownloadFile(new Uri(href), filename);
+                            client.DownloadFile(new Uri(href), filepath);
                         }
 
-                        img.ParentNode.SetAttributeValue("href", "images/" + Path.GetFileName(filename));
-                        img.SetAttributeValue("src", "images/" + Path.GetFileName(filename));
+                        img.ParentNode.SetAttributeValue("href", "images/" + filename);
+                        img.SetAttributeValue("src", "images/" + filename);
                     }
 
                     post.BodyHtml = htmlDocument.DocumentNode.OuterHtml;
@@ -173,9 +179,10 @@ namespace BlogspotToHtmlBook
             GetEntrance(ConfigurationManager.AppSettings["FirstBlogPost"]);
 
             RemoveDuplicateFilenames(outputFolder);
+            LoadImagesAndChangeHtml(outputFolder);
 
             CreatePosts(outputFolder);
-            LoadImagesAndChangeHtml(outputFolder);
+            
             CreateIndex(outputFolder);
 
             Console.WriteLine($"Finish. Number of posts processed: {  postCollection.Count }");
