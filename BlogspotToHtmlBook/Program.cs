@@ -12,7 +12,7 @@ namespace BlogspotToHtmlBook
 {
     class Program
     {
-        private static Stack<BlogPost> postCollection;
+        private static List<BlogPost> postCollection;
 
         static void GetEntrance(string url)
         {
@@ -50,29 +50,13 @@ namespace BlogspotToHtmlBook
                 FileNameOutput = url.Split('/').Last()
             };
 
-            postCollection.Push(post);
+            postCollection.Add(post);
 
             HtmlNode nextPost = doc.DocumentNode.SelectSingleNode("//a[@id='Blog1_blog-pager-older-link']");
 
             if(nextPost != null)
             {
                 GetEntrance(nextPost.Attributes["href"].Value);
-            }
-        }
-
-        private static void RemoveDuplicateFilenames(string outputFolder)
-        {
-            foreach(BlogPost post in postCollection)
-            {
-                while (true)
-                {
-                    if (!File.Exists($"{outputFolder}\\{post.FileNameOutput}"))
-                    {
-                        break;
-                    }
-
-                    post.FileNameOutput = "p" + post.FileNameOutput;
-                }
             }
         }
 
@@ -86,17 +70,37 @@ namespace BlogspotToHtmlBook
                 html += $"<h3>{ post.Date }</h3>";
                 html += $"<div>{ post.BodyHtml }</div>";
 
-                File.WriteAllText($"{outputFolder}\\{post.FileNameOutput}", html);
+                string filePath = $"{outputFolder}\\{post.FileNameOutput}";
+                do
+                {
+                    if (!File.Exists(filePath))
+                    {
+                        break;
+                    }
+
+                    post.FileNameOutput = "w" + post.FileNameOutput;
+                    filePath = $"{outputFolder}\\{post.FileNameOutput}";
+                } while (true);
+
+               File.WriteAllText(filePath, html);
             }
         }
 
         private static void CreateIndex(string outputFolder)
         {
-            string html = "<hml><head><title>Index</title></head><body>";
+            string html = "<hml><head><title>Index</title></head><body><h1>Index</h1>";
 
             int key = 1;
+            string year = null;
             foreach (BlogPost post in postCollection)
             {
+                string postYear = post.Date.Split(',').Last();
+                if (year == null || year != postYear)
+                {
+                    year = postYear;
+                    html += $"<h2>{ year }</h2>";
+                }
+
                 html += $"<b>{ key }</b> - <a href='{outputFolder}\\{post.FileNameOutput}'>{ post.Title }</a> - <i>{ post.Date }</i><br/>";
                 key++;
             }
@@ -137,7 +141,7 @@ namespace BlogspotToHtmlBook
 
                 if (imgs != null)
                 {
-                    Console.WriteLine($"Getting blog post images: { post.Title.Replace('\n', '') }");
+                    Console.WriteLine($"Getting blog post images: { post.Title.Replace('\n', '\0') }");
 
                     foreach (HtmlNode img in imgs)
                     {
@@ -159,8 +163,8 @@ namespace BlogspotToHtmlBook
                             client.DownloadFile(new Uri(href), filepath);
                         }
 
-                        img.ParentNode.SetAttributeValue("href", "images/" + filename);
-                        img.SetAttributeValue("src", "images/" + filename);
+                        img.ParentNode.SetAttributeValue("href", "images/" + filename); //a tag
+                        img.SetAttributeValue("src", "images/" + filename); //img tag
                     }
 
                     post.BodyHtml = htmlDocument.DocumentNode.OuterHtml;
@@ -170,15 +174,13 @@ namespace BlogspotToHtmlBook
 
         static void Main(string[] args)
         {
-            postCollection = new Stack<BlogPost>();
+            postCollection = new List<BlogPost>();
 
             string outputFolder = ConfigurationManager.AppSettings["OutputFolder"];
 
             ClearContentOfFolder(outputFolder);
 
             GetEntrance(ConfigurationManager.AppSettings["FirstBlogPost"]);
-
-            RemoveDuplicateFilenames(outputFolder);
             LoadImagesAndChangeHtml(outputFolder);
 
             CreatePosts(outputFolder);
