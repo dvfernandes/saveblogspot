@@ -101,9 +101,11 @@ namespace BlogspotToHtmlBook
                     html += $"<h2>{ year }</h2>";
                 }
 
-                html += $"<b>{ key }</b> - <a href='{outputFolder}\\{post.FileNameOutput}'>{ post.Title }</a> - <i>{ post.Date }</i><br/>";
+                html += $"<b>{ key }</b> - <a href='{post.FileNameOutput}'>{ post.Title }</a> - <i>{ post.Date }</i><br/>";
                 key++;
             }
+
+            html += $"<p>External content from <a href='externalcontentindex.html'>here</a>.</p>";
 
             html += "</body></html>";
 
@@ -147,9 +149,19 @@ namespace BlogspotToHtmlBook
                     {
                         string href = img.ParentNode.GetAttributeValue("href", null);
 
-                        if (href.StartsWith("//"))
+                        bool aTag = true;
+                        if (href == null)
                         {
-                            href = "https:" + href;
+                            aTag = false;
+
+                            href = img.GetAttributeValue("src", null);
+                        }
+                        else
+                        {
+                            if (href.StartsWith("//"))
+                            {
+                                href = "https:" + href;
+                            }
                         }
                         
                         string filename = href.Split('/').Last();
@@ -163,13 +175,63 @@ namespace BlogspotToHtmlBook
                             client.DownloadFile(new Uri(href), filepath);
                         }
 
-                        img.ParentNode.SetAttributeValue("href", "images/" + filename); //a tag
+                        if (aTag)
+                        {
+                            img.ParentNode.SetAttributeValue("href", "images/" + filename); //a tag
+                        }
                         img.SetAttributeValue("src", "images/" + filename); //img tag
                     }
 
                     post.BodyHtml = htmlDocument.DocumentNode.OuterHtml;
                 }
             }
+        }
+
+        private static void CreateExternalSourcesIndex(string outputFolder)
+        {
+            List<string> externalUrl = new List<string>();
+
+            foreach (BlogPost post in postCollection)
+            {
+                HtmlDocument htmlDocument = new HtmlDocument();
+                htmlDocument.LoadHtml(post.BodyHtml);
+
+                HtmlNodeCollection links = htmlDocument.DocumentNode.SelectNodes("//a");
+
+                if (links != null)
+                {
+                    foreach (HtmlNode link in links)
+                    {
+                        string href = link.GetAttributeValue("href", null);
+
+                        if (href == null)
+                            continue;
+
+                        if (href.EndsWith(".jpg") || href.EndsWith(".gif") || href.EndsWith(".jpeg") || href.EndsWith(".png"))
+                        {
+                            continue;
+                        }
+
+                        if (href.StartsWith("https:") || href.StartsWith("http:"))
+                        {
+                            externalUrl.Add(href);
+                        }
+                    }
+                }
+            }
+
+            string html = "<hml><head><title>Index - External Content</title></head><body><h1>Index - External Content</h1>";
+
+            html += "<ol>";
+            foreach (string url in externalUrl)
+            {
+                html += $"<li><a href='{ url }' target='_blank'>{ url }</a></i></li>";
+            }
+            html += "</ol>";
+
+            html += "</body></html>";
+
+            File.WriteAllText($"{outputFolder}\\externalcontentindex.html", html);
         }
 
         static void Main(string[] args)
@@ -184,7 +246,8 @@ namespace BlogspotToHtmlBook
             LoadImagesAndChangeHtml(outputFolder);
 
             CreatePosts(outputFolder);
-            
+
+            CreateExternalSourcesIndex(outputFolder);
             CreateIndex(outputFolder);
 
             Console.WriteLine($"Finish. Number of posts processed: {  postCollection.Count }");
