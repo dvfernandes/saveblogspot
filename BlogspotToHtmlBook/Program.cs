@@ -1,12 +1,11 @@
-﻿using HtmlAgilityPack;
+﻿using BlogspotToHtmlBook.Model;
+using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BlogspotToHtmlBook
 {
@@ -14,7 +13,7 @@ namespace BlogspotToHtmlBook
     {
         private static List<BlogPost> postCollection;
 
-        static void GetEntrance(string url)
+        static void GetEntrance(string url, int id)
         {
             Console.WriteLine($"Getting blog post: { url }");
 
@@ -42,12 +41,13 @@ namespace BlogspotToHtmlBook
                 throw new ArgumentException($"Can't get post body: { url }");
             }
 
-            BlogPost post = new BlogPost
+            var post = new BlogPost 
             {
+                Id = id,
                 Date = postDate.InnerText,
                 Title = postTitle.InnerText,
                 BodyHtml = postBody.InnerHtml,
-                FileNameOutput = url.Split('/').Last()
+                Url = url
             };
 
             postCollection.Add(post);
@@ -56,43 +56,35 @@ namespace BlogspotToHtmlBook
 
             if(nextPost != null)
             {
-                GetEntrance(nextPost.Attributes["href"].Value);
+                GetEntrance(nextPost.Attributes["href"].Value, id + 1);
             }
         }
 
         private static void CreatePosts(string outputFolder)
         {
-            foreach (BlogPost post in postCollection)
-            {
+            foreach (BlogPost post in postCollection) {
                 string html = $"<hml><head><title>{ post.Title }</title></head><body>";
 
                 html += $"<h1>{ post.Title }</h1>";
                 html += $"<h3>{ post.Date }</h3>";
                 html += $"<div>{ post.BodyHtml }</div>";
 
-                string filePath = $"{outputFolder}\\{post.FileNameOutput}";
-                do
-                {
-                    if (!File.Exists(filePath))
-                    {
-                        break;
-                    }
+                string filePath = $"{outputFolder}\\{post.FileName}";
 
-                    post.FileNameOutput = "w" + post.FileNameOutput;
-                    filePath = $"{outputFolder}\\{post.FileNameOutput}";
-                } while (true);
+                if (File.Exists(filePath)) {
+                    throw new Exception($"Filepath already exists: { filePath }");
+                }
 
-               File.WriteAllText(filePath, html);
+                File.WriteAllText(filePath, html);
             }
         }
 
         private static void CreateIndex(string outputFolder)
         {
             string html = "<hml><head><title>Index</title></head><body><h1>Index</h1>";
-
-            int key = 1;
+            
             string year = null;
-            foreach (BlogPost post in postCollection)
+            foreach (BlogPost post in postCollection.OrderBy(p => p.Id))
             {
                 string postYear = post.Date.Split(',').Last();
                 if (year == null || year != postYear)
@@ -101,8 +93,7 @@ namespace BlogspotToHtmlBook
                     html += $"<h2>{ year }</h2>";
                 }
 
-                html += $"<b>{ key }</b> - <a href='{post.FileNameOutput}'>{ post.Title }</a> - <i>{ post.Date }</i><br/>";
-                key++;
+                html += $"<b>{ post.Id }</b> - <a href='{post.FileName}'>{ post.Title }</a> - <i>{ post.Date }</i><br/>";
             }
 
             html += $"<p>External content from <a href='externalcontentindex.html'>here</a>.</p>";
@@ -242,7 +233,7 @@ namespace BlogspotToHtmlBook
 
             ClearContentOfFolder(outputFolder);
 
-            GetEntrance(ConfigurationManager.AppSettings["FirstBlogPost"]);
+            GetEntrance(ConfigurationManager.AppSettings["FirstBlogPost"], 1);
             LoadImagesAndChangeHtml(outputFolder);
 
             CreatePosts(outputFolder);
