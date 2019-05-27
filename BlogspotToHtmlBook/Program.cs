@@ -6,6 +6,7 @@ using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 
 namespace BlogspotToHtmlBook
 {
@@ -97,6 +98,7 @@ namespace BlogspotToHtmlBook
             }
 
             html += $"<p>External content from <a href='externalcontentindex.html'>here</a>.</p>";
+            html += $"<p>Full book can be read <a href='fullbook.html'>here</a>.</p>";
 
             html += "</body></html>";
 
@@ -225,6 +227,25 @@ namespace BlogspotToHtmlBook
             File.WriteAllText($"{outputFolder}\\externalcontentindex.html", html);
         }
 
+        private static void CreateFullBook(string outputFolder) {
+
+            StringBuilder fullText = new StringBuilder("<hml><head><title>The Book</title></head><body>");
+
+            foreach (BlogPost post in postCollection.OrderBy(p => p.Id)) {
+                string filePath = $"{outputFolder}\\{post.FileName}";
+
+                fullText.Append(File.ReadAllText(filePath));
+
+                fullText.Append("<hr />");
+            }
+
+            fullText.Append($"<div>{ DateTime.Now.ToString("MMMM d, yyyy") }</div>");
+
+            fullText.Append("</body></hml>");
+
+            File.WriteAllText($"{outputFolder}\\fullbook.html", fullText.ToString());
+        }
+
         static void Main(string[] args)
         {
             postCollection = new List<BlogPost>();
@@ -239,6 +260,8 @@ namespace BlogspotToHtmlBook
             CreatePosts(outputFolder);
 
             CreateExternalSourcesIndex(outputFolder);
+            CreateFullBook(outputFolder);
+
             CreateIndex(outputFolder);
 
             Console.WriteLine($"Finish. Number of posts processed: {  postCollection.Count }");
