@@ -96,7 +96,7 @@ namespace BlogspotToHtmlBook
                 fullText.Append("<hr />");
             }
 
-            fullText.Append($"<div>{ DateTime.Now.ToString("MMMM d, yyyy") }</div>");
+            fullText.Append($"<div>Created on { DateTime.Now.ToString("MMMM d, yyyy") }</div>");
 
             fullText.Append("</body></hml>");
 
