@@ -1,4 +1,6 @@
-﻿using BlogspotToHtmlBook.Model;
+﻿using BlogspotToHtmlBook.Infrastructure;
+using BlogspotToHtmlBook.Model;
+using BlogspotToHtmlBook.Services;
 using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
@@ -12,75 +14,7 @@ namespace BlogspotToHtmlBook
 {
     class Program
     {
-        private static List<BlogPost> postCollection;
-
-        static void GetEntrance(string url, int id)
-        {
-            Console.WriteLine($"Getting blog post: { url }");
-
-            HtmlWeb web = new HtmlWeb();
-            HtmlDocument doc = web.Load(url);
-
-            HtmlNode postDate = doc.DocumentNode.SelectSingleNode("//h2[@class='date-header']");
-
-            if (postDate == null)
-            {
-                throw new ArgumentException($"Can't get post date: { url }");
-            }
-            
-            HtmlNode postTitle= doc.DocumentNode.SelectSingleNode("//h3[@class='post-title entry-title']");
-
-            if (postTitle == null)
-            {
-                throw new ArgumentException($"Can't get post title: { url }");
-            }
-
-            HtmlNode postBody = doc.DocumentNode.SelectSingleNode("//div[@class='post-body entry-content']");
-
-            if (postBody == null)
-            {
-                throw new ArgumentException($"Can't get post body: { url }");
-            }
-
-            var post = new BlogPost 
-            {
-                Id = id,
-                Date = postDate.InnerText,
-                Title = postTitle.InnerText,
-                BodyHtml = postBody.InnerHtml,
-                Url = url
-            };
-
-            postCollection.Add(post);
-
-            HtmlNode nextPost = doc.DocumentNode.SelectSingleNode("//a[@id='Blog1_blog-pager-older-link']");
-
-            if(nextPost != null)
-            {
-                GetEntrance(nextPost.Attributes["href"].Value, id + 1);
-            }
-        }
-
-        private static void CreatePosts(string outputFolder)
-        {
-            foreach (BlogPost post in postCollection) {
-                string html = $"<hml><head><title>{ post.Title }</title></head><body>";
-
-                html += $"<h1>{ post.Title }</h1>";
-                html += $"<h3>{ post.Date }</h3>";
-                html += $"<div>{ post.BodyHtml }</div>";
-
-                string filePath = $"{outputFolder}\\{post.FileName}";
-
-                if (File.Exists(filePath)) {
-                    throw new Exception($"Filepath already exists: { filePath }");
-                }
-
-                File.WriteAllText(filePath, html);
-            }
-        }
-
-        private static void CreateIndex(string outputFolder)
+        private static void CreateIndex(string outputFolder, IList<BlogPost> postCollection)
         {
             string html = "<hml><head><title>Index</title></head><body><h1>Index</h1>";
             
@@ -104,83 +38,8 @@ namespace BlogspotToHtmlBook
 
             File.WriteAllText($"{outputFolder}\\index.html", html);
         }
-
-        private static void ClearContentOfFolder(string folder)
-        {
-           DirectoryInfo di = new DirectoryInfo(folder);
-
-            foreach (FileInfo file in di.GetFiles())
-            {
-                file.Delete();
-            }
-
-            foreach (DirectoryInfo dir in di.GetDirectories())
-            {
-                dir.Delete(true);
-            }
-        }
-
-        private static void LoadImagesAndChangeHtml(string outputFolder)
-        {
-            string imgDir = $"{outputFolder}\\images";
-
-            Directory.CreateDirectory(imgDir);
-            long filenameKey = 0;
-            
-            foreach (BlogPost post in postCollection)
-            {
-                HtmlDocument htmlDocument = new HtmlDocument();
-                htmlDocument.LoadHtml(post.BodyHtml);
-
-                HtmlNodeCollection imgs = htmlDocument.DocumentNode.SelectNodes("//img");
-
-                if (imgs != null)
-                {
-                    Console.WriteLine($"Getting blog post images: { post.Title.Replace('\n', '\0') }");
-
-                    foreach (HtmlNode img in imgs)
-                    {
-                        string href = img.ParentNode.GetAttributeValue("href", null);
-
-                        bool aTag = true;
-                        if (href == null)
-                        {
-                            aTag = false;
-
-                            href = img.GetAttributeValue("src", null);
-                        }
-                        else
-                        {
-                            if (href.StartsWith("//"))
-                            {
-                                href = "https:" + href;
-                            }
-                        }
-                        
-                        string filename = href.Split('/').Last();
-                        filename = $"{ filenameKey }.{ filename.Split('.').Last() }";
-                        filenameKey++;
-                        
-                        string filepath = $"{ imgDir }\\{ filename }";
-                        
-                        using (WebClient client = new WebClient())
-                        {
-                            client.DownloadFile(new Uri(href), filepath);
-                        }
-
-                        if (aTag)
-                        {
-                            img.ParentNode.SetAttributeValue("href", "images/" + filename); //a tag
-                        }
-                        img.SetAttributeValue("src", "images/" + filename); //img tag
-                    }
-
-                    post.BodyHtml = htmlDocument.DocumentNode.OuterHtml;
-                }
-            }
-        }
-
-        private static void CreateExternalSourcesIndex(string outputFolder)
+        
+        private static void CreateExternalSourcesIndex(string outputFolder, IList<BlogPost> postCollection)
         {
             List<string> externalUrl = new List<string>();
 
@@ -227,14 +86,12 @@ namespace BlogspotToHtmlBook
             File.WriteAllText($"{outputFolder}\\externalcontentindex.html", html);
         }
 
-        private static void CreateFullBook(string outputFolder) {
+        private static void CreateFullBook(string outputFolder, IList<BlogPost> postCollection) {
 
             StringBuilder fullText = new StringBuilder("<hml><head><title>The Book</title></head><body>");
 
             foreach (BlogPost post in postCollection.OrderBy(p => p.Id)) {
-                string filePath = $"{outputFolder}\\{post.FileName}";
-
-                fullText.Append(File.ReadAllText(filePath));
+                fullText.Append(post.GetPostAsHtml());
 
                 fullText.Append("<hr />");
             }
@@ -248,21 +105,18 @@ namespace BlogspotToHtmlBook
 
         static void Main(string[] args)
         {
-            postCollection = new List<BlogPost>();
+            var outputFolder = ConfigurationManager.AppSettings["OutputFolder"];
+            var firstBlogPost = ConfigurationManager.AppSettings["FirstBlogPost"];
 
-            string outputFolder = ConfigurationManager.AppSettings["OutputFolder"];
+            var logger = new Logger();
 
-            ClearContentOfFolder(outputFolder);
+            var scrapper = new ScrapperService(outputFolder, logger);
 
-            GetEntrance(ConfigurationManager.AppSettings["FirstBlogPost"], 1);
-            LoadImagesAndChangeHtml(outputFolder);
-
-            CreatePosts(outputFolder);
-
-            CreateExternalSourcesIndex(outputFolder);
-            CreateFullBook(outputFolder);
-
-            CreateIndex(outputFolder);
+            var postCollection = scrapper.DoScrapping(firstBlogPost);
+            
+            CreateExternalSourcesIndex(outputFolder, postCollection);
+            CreateFullBook(outputFolder, postCollection);
+            CreateIndex(outputFolder, postCollection);
 
             Console.WriteLine($"Finish. Number of posts processed: {  postCollection.Count }");
             Console.ReadLine();
