@@ -106,13 +106,16 @@ namespace BlogspotToHtmlBook
         static void Main(string[] args)
         {
             var outputFolder = ConfigurationManager.AppSettings["OutputFolder"];
-            var firstBlogPost = ConfigurationManager.AppSettings["FirstBlogPost"];
+            var bloggerRssFeed = ConfigurationManager.AppSettings["BloggerRssFeed"];
 
             var logger = new Logger();
 
+
+            var firstBlogPost = BlogspotRssService.GetFirstPost(bloggerRssFeed);
+
             var scrapper = new ScrapperService(outputFolder, logger);
 
-            var postCollection = scrapper.DoScrapping(firstBlogPost);
+            var postCollection = scrapper.DoScrapping(firstBlogPost.ToString());
             
             CreateExternalSourcesIndex(outputFolder, postCollection);
             CreateFullBook(outputFolder, postCollection);
