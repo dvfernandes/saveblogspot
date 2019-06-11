@@ -23,7 +23,7 @@ namespace BlogspotToHtmlBook.Services {
             Logger = logger;
         }
 
-        public IList<BlogPost> DoScrapping(string startingBlogPost) {
+        public IList<BlogPost> DoScrapping(Queue<string> blogPostsUrls) {
 
             ClearAllContents();
 
@@ -35,8 +35,12 @@ namespace BlogspotToHtmlBook.Services {
             }
 
             var blogPosts = new List<BlogPost>();
+            var blogpostId = 1;
 
-            GetBlogPost(startingBlogPost, 1, blogPosts);
+            foreach (string blogPostUrl in blogPostsUrls) {
+                blogPosts.Add(GetBlogPost(blogPostUrl, blogpostId));
+                blogpostId++;
+            }
 
             return blogPosts;
         }
@@ -55,7 +59,7 @@ namespace BlogspotToHtmlBook.Services {
             Logger.Log("All the contents from the output folder were deleted.");
         }
 
-        private void GetBlogPost(string url, int blogpostId, IList<BlogPost> blogPosts) {
+        private BlogPost GetBlogPost(string url, int blogpostId) {
             
             Logger.Log($"Getting blog post: { url }");
 
@@ -86,13 +90,7 @@ namespace BlogspotToHtmlBook.Services {
 
             CreatePostInFileSystem(post);
 
-            blogPosts.Add(post);
-
-            HtmlNode nextPost = doc.DocumentNode.SelectSingleNode("//a[@id='Blog1_blog-pager-older-link']");
-
-            if (nextPost != null) {
-                GetBlogPost(nextPost.Attributes["href"].Value, blogpostId + 1, blogPosts);
-            }
+            return post;
         }
 
         private void CreatePostInFileSystem(BlogPost post) {

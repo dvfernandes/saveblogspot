@@ -89,6 +89,8 @@ namespace BlogspotToHtmlBook
         private static void CreateFullBook(string outputFolder, IList<BlogPost> postCollection) {
 
             StringBuilder fullText = new StringBuilder("<hml><head><title>The Book</title></head><body>");
+            //when priting, each post will be a new page
+            fullText.Append("<style>@media print { h1 { page-break-before: always; } }</style>");
 
             foreach (BlogPost post in postCollection.OrderBy(p => p.Id)) {
                 fullText.Append(post.GetPostAsHtml());
@@ -110,18 +112,18 @@ namespace BlogspotToHtmlBook
 
             var logger = new Logger();
 
-
-            var firstBlogPost = BlogspotRssService.GetFirstPost(bloggerRssFeed);
+            var allBlogPosts = BlogspotRssService.GetAllPostsUrl(bloggerRssFeed);
+            logger.Log($"It has { allBlogPosts.Count } to download.");
 
             var scrapper = new ScrapperService(outputFolder, logger);
 
-            var postCollection = scrapper.DoScrapping(firstBlogPost.ToString());
+            var postCollection = scrapper.DoScrapping(allBlogPosts);
             
             CreateExternalSourcesIndex(outputFolder, postCollection);
             CreateFullBook(outputFolder, postCollection);
             CreateIndex(outputFolder, postCollection);
 
-            Console.WriteLine($"Finish. Number of posts processed: {  postCollection.Count }");
+            Console.WriteLine($"Finish. Number of posts downloaded: {  postCollection.Count }");
             Console.ReadLine();
         }
     }
