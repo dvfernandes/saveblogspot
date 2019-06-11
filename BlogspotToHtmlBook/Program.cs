@@ -5,6 +5,7 @@ using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -107,6 +108,9 @@ namespace BlogspotToHtmlBook
 
         static void Main(string[] args)
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             var outputFolder = ConfigurationManager.AppSettings["OutputFolder"];
             var bloggerRssFeed = ConfigurationManager.AppSettings["BloggerRssFeed"];
 
@@ -123,7 +127,10 @@ namespace BlogspotToHtmlBook
             CreateFullBook(outputFolder, postCollection);
             CreateIndex(outputFolder, postCollection);
 
-            Console.WriteLine($"Finish. Number of posts downloaded: {  postCollection.Count }");
+            stopwatch.Stop();
+
+            logger.Log($"Finished. Number of posts downloaded: {  postCollection.Count }. Total minutes: { stopwatch.Elapsed.TotalMinutes }");
+
             Console.ReadLine();
         }
     }

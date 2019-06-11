@@ -9,8 +9,7 @@ namespace BlogspotToHtmlBook.Model {
         public readonly string Date;
         public readonly string BodyHtml;
         public readonly string Url;
-
-        public string FileName => Id + "-" + Url.Split('/').Last();
+        public readonly string FileName;
 
         public BlogPost(int id, string title, string date, string bodyHtml, string url) {
             Id = id;
@@ -18,6 +17,7 @@ namespace BlogspotToHtmlBook.Model {
             Date = date;
             BodyHtml = bodyHtml;
             Url = url;
+            FileName = id + "-" + url.Split('/').Last();
         }
 
         public string GetPostAsHtml() {
