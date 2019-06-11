@@ -129,7 +129,7 @@ namespace BlogspotToHtmlBook
 
             stopwatch.Stop();
 
-            logger.Log($"Finished. Number of posts downloaded: {  postCollection.Count }. Total minutes: { stopwatch.Elapsed.TotalMinutes }");
+            logger.Log($"Finished. Number of posts downloaded: {  postCollection.Count }. Total minutes: { Convert.ToInt32(stopwatch.Elapsed.TotalMinutes) }");
 
             Console.ReadLine();
         }
