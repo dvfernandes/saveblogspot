@@ -143,7 +143,7 @@ namespace BlogspotToStaticWeb
             }
         }
 
-        public void Work(string outputFolder, string bloggerRssFeed)
+        public void Work(string outputFolder, string bloggerRssFeed, ILogger logger)
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -156,15 +156,13 @@ namespace BlogspotToStaticWeb
                 throw new Exception($"The images folder wasn't created: { imagesOutputFolder }");
             }
 
-            var logger = new Logger();
-
             ClearAllContents(outputFolder);
-            logger.Log("All the contents from the output folder were deleted.");
+            logger.Debug("All the contents from the output folder were deleted.");
 
             var allBlogPosts = BlogspotRssService.GetAllPostsUrl(bloggerRssFeed);
-            logger.Log($"It has { allBlogPosts.Count } to download.");
+            logger.Debug($"It has { allBlogPosts.Count } to download.");
 
-            var scrapper = new ScrapperService(outputFolder, logger);
+            var scrapper = new ScrapperService(logger);
 
             var postCollection = scrapper.DoScrapping(allBlogPosts, imagesOutputFolder);
             
@@ -175,9 +173,7 @@ namespace BlogspotToStaticWeb
 
             stopwatch.Stop();
 
-            logger.Log($"Finished. Number of posts downloaded: {  postCollection.Count }. Total minutes: { Convert.ToInt32(stopwatch.Elapsed.TotalMinutes) }");
-
-            Console.ReadLine();
+            logger.Debug($"Finished. Number of posts downloaded: {  postCollection.Count }. Total minutes: { Convert.ToInt32(stopwatch.Elapsed.TotalMinutes) }");
         }
     }
 }

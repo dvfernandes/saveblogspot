@@ -1,4 +1,5 @@
 ﻿using System;
+using BlogspotToHtmlBook.Infrastructure;
 using Microsoft.Extensions.Configuration;
 
 namespace BlogspotToStaticWeb
@@ -21,7 +22,7 @@ namespace BlogspotToStaticWeb
 
             var job = Job.GetInstance();
 
-            job.Work(outputFolder, bloggerRssFeed);
+            job.Work(outputFolder, bloggerRssFeed, new Logger());
         }
     }
 }

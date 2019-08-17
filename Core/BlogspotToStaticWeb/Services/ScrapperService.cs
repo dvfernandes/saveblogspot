@@ -10,13 +10,11 @@ using HtmlAgilityPack;
 namespace BlogspotToHtmlBook.Services {
     public class ScrapperService {
 
-        private readonly string OutputFolder;
-        private readonly Logger Logger;
+        private readonly ILogger Logger;
 
         private long imageFilenameKey;
 
-        public ScrapperService(string outputFolder, Logger logger) {
-            OutputFolder = outputFolder;
+        public ScrapperService(ILogger logger) {
             Logger = logger;
         }
 
@@ -37,7 +35,7 @@ namespace BlogspotToHtmlBook.Services {
 
         private BlogPost GetBlogPost(string url, int blogpostId, string imagesOutputFolder) {
             
-            Logger.Log($"Getting blog post: { url }");
+            Logger.Debug($"Getting blog post: { url }");
 
             HtmlWeb web = new HtmlWeb();
             HtmlDocument doc = web.Load(url);
@@ -106,11 +104,11 @@ namespace BlogspotToHtmlBook.Services {
                     img.SetAttributeValue("src", "images/" + filename); //img tag
                 }
 
-                Logger.Log($"Total images downloaded: { imgs.Count() }");
+                Logger.Debug($"Total images downloaded: { imgs.Count() }");
 
                 return htmlDocument.DocumentNode.OuterHtml;
             } else {
-                Logger.Log($"No images were downloaded.");
+                Logger.Debug($"No images were downloaded.");
 
                 return bodyHtml;
             }
