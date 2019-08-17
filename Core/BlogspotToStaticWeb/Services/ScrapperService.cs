@@ -18,7 +18,7 @@ namespace BlogspotToHtmlBook.Services {
             Logger = logger;
         }
 
-        public IList<BlogPost> DoScrapping(Queue<string> blogPostsUrls, string imagesOutputFolder) {
+        public IList<BlogPost> DoScrapping(Queue<string> blogPostsUrls, DirectoryInfo imagesOutputFolder) {
 
             imageFilenameKey = 0;
 
@@ -33,7 +33,7 @@ namespace BlogspotToHtmlBook.Services {
             return blogPosts;
         }
 
-        private BlogPost GetBlogPost(string url, int blogpostId, string imagesOutputFolder) {
+        private BlogPost GetBlogPost(string url, int blogpostId, DirectoryInfo imagesOutputFolder) {
             
             Logger.Debug($"Getting blog post: { url }");
 
@@ -65,7 +65,7 @@ namespace BlogspotToHtmlBook.Services {
             return post;
         }
 
-        private string LoadImagesAndChangeHtmlFromPostBody(string bodyHtml, string imagesOutputFolder) {
+        private string LoadImagesAndChangeHtmlFromPostBody(string bodyHtml, DirectoryInfo imagesOutputFolder) {
             
             HtmlDocument htmlDocument = new HtmlDocument();
             htmlDocument.LoadHtml(bodyHtml);
@@ -92,10 +92,14 @@ namespace BlogspotToHtmlBook.Services {
                     filename = $"{ imageFilenameKey }.{ filename.Split('.').Last() }";
                     imageFilenameKey++;
 
-                    string filepath = $"{ imagesOutputFolder }\\{ filename }";
+                    string filePath = Path.Combine(imagesOutputFolder.ToString(), filename);
+
+                    if (File.Exists(filePath)) {
+                        throw new Exception($"Image download to file. Filepath already exists: { filePath }");
+                    }
 
                     using (WebClient client = new WebClient()) {
-                        client.DownloadFile(new Uri(href), filepath);
+                        client.DownloadFile(new Uri(href), filePath);
                     }
 
                     if (aTag) {

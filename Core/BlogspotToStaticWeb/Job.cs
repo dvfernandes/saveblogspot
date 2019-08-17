@@ -26,7 +26,7 @@ namespace BlogspotToStaticWeb
             return _instance;
         }
 
-        public void CreateIndex(string outputFolder, IList<BlogPost> postCollection)
+        public void CreateIndex(DirectoryInfo outputFolder, IList<BlogPost> postCollection)
         {
             string html = "<hml><head><title>Index</title></head><body><h1>Index</h1>";
             
@@ -48,10 +48,10 @@ namespace BlogspotToStaticWeb
 
             html += "</body></html>";
 
-            File.WriteAllText($"{outputFolder}\\index.html", html);
+            File.WriteAllText(Path.Combine(outputFolder.ToString(), "index.html"), html);
         }
         
-        public void CreateExternalSourcesIndex(string outputFolder, IList<BlogPost> postCollection)
+        public void CreateExternalSourcesIndex(DirectoryInfo outputFolder, IList<BlogPost> postCollection)
         {
             List<string> externalUrl = new List<string>();
 
@@ -95,10 +95,10 @@ namespace BlogspotToStaticWeb
 
             html += "</body></html>";
 
-            File.WriteAllText($"{outputFolder}\\externalcontentindex.html", html);
+            File.WriteAllText(Path.Combine(outputFolder.ToString(), "externalcontentindex.html"), html);
         }
 
-        public void CreateFullBook(string outputFolder, IList<BlogPost> postCollection) {
+        public void CreateFullBook(DirectoryInfo outputFolder, IList<BlogPost> postCollection) {
 
             StringBuilder fullText = new StringBuilder("<hml><head><title>The Book</title></head><body>");
             //when priting, each post will be a new page
@@ -114,14 +114,14 @@ namespace BlogspotToStaticWeb
 
             fullText.Append("</body></hml>");
 
-            File.WriteAllText($"{outputFolder}\\fullbook.html", fullText.ToString());
+            File.WriteAllText(Path.Combine(outputFolder.ToString(), "fullbook.html"), fullText.ToString());
         }
 
-        public void CreatePostsInFileSystem(string outputFolder, IList<BlogPost> postCollection) {
+        public void CreatePostsInFileSystem(DirectoryInfo outputFolder, IList<BlogPost> postCollection) {
 
             foreach (BlogPost post in postCollection) {
 
-                string filePath = $"{outputFolder}\\{post.FileName}";
+                string filePath = Path.Combine(outputFolder.ToString(), post.FileName);
 
                 if (File.Exists(filePath)) {
                     throw new Exception($"Filepath already exists: { filePath }");
@@ -131,14 +131,12 @@ namespace BlogspotToStaticWeb
             }
         }
 
-        public void ClearAllContents(string outputFolder) {
-            DirectoryInfo di = new DirectoryInfo(outputFolder);
-
-            foreach (FileInfo file in di.GetFiles()) {
+        public void ClearAllContents(DirectoryInfo outputFolder) {
+            foreach (FileInfo file in outputFolder.GetFiles()) {
                 file.Delete();
             }
 
-            foreach (DirectoryInfo dir in di.GetDirectories()) {
+            foreach (DirectoryInfo dir in outputFolder.GetDirectories()) {
                 dir.Delete(true);
             }
         }
@@ -148,28 +146,28 @@ namespace BlogspotToStaticWeb
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            var imagesOutputFolder = $"{outputFolder}\\images";
+            DirectoryInfo outputDirectory = new DirectoryInfo(outputFolder);
 
-            Directory.CreateDirectory(imagesOutputFolder);
-
-            if (!Directory.Exists(imagesOutputFolder)) {
-                throw new Exception($"The images folder wasn't created: { imagesOutputFolder }");
+            if(!outputDirectory.Exists){
+                throw new ArgumentException($"Output folder does not exist: { outputFolder }");
             }
 
-            ClearAllContents(outputFolder);
+            ClearAllContents(outputDirectory);
             logger.Debug("All the contents from the output folder were deleted.");
+
+            var imagesDirectory = outputDirectory.CreateSubdirectory("images");
 
             var allBlogPosts = BlogspotRssService.GetAllPostsUrl(blogspotUrl);
             logger.Debug($"It has { allBlogPosts.Count } to download.");
 
             var scrapper = new ScrapperService(logger);
 
-            var postCollection = scrapper.DoScrapping(allBlogPosts, imagesOutputFolder);
+            var postCollection = scrapper.DoScrapping(allBlogPosts, imagesDirectory);
             
-            CreatePostsInFileSystem(outputFolder, postCollection);
-            CreateExternalSourcesIndex(outputFolder, postCollection);
-            CreateFullBook(outputFolder, postCollection);
-            CreateIndex(outputFolder, postCollection);
+            CreatePostsInFileSystem(outputDirectory, postCollection);
+            CreateExternalSourcesIndex(outputDirectory, postCollection);
+            CreateFullBook(outputDirectory, postCollection);
+            CreateIndex(outputDirectory, postCollection);
 
             stopwatch.Stop();
 
