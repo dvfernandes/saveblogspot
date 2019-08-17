@@ -7,7 +7,10 @@ using System.Xml.Linq;
 
 namespace BlogspotToHtmlBook.Services {
     public static class BlogspotRssService {
-        public static Queue<string> GetAllPostsUrl(string feedUrl) {
+        public static Queue<string> GetAllPostsUrl(string blogUrl) {
+
+            var feedUrl = blogUrl + "/feeds/posts/default";
+
             var posts = new Queue<string>();
             string totalResults = null;
 

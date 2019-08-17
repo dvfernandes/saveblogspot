@@ -143,7 +143,7 @@ namespace BlogspotToStaticWeb
             }
         }
 
-        public void Work(string outputFolder, string bloggerRssFeed, ILogger logger)
+        public void Work(string outputFolder, string blogspotUrl, ILogger logger)
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -159,7 +159,7 @@ namespace BlogspotToStaticWeb
             ClearAllContents(outputFolder);
             logger.Debug("All the contents from the output folder were deleted.");
 
-            var allBlogPosts = BlogspotRssService.GetAllPostsUrl(bloggerRssFeed);
+            var allBlogPosts = BlogspotRssService.GetAllPostsUrl(blogspotUrl);
             logger.Debug($"It has { allBlogPosts.Count } to download.");
 
             var scrapper = new ScrapperService(logger);

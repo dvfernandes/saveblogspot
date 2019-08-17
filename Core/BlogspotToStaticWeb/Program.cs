@@ -13,16 +13,16 @@ namespace BlogspotToStaticWeb
                               .Build();
 
             var outputFolder = configuration["OutputFolder"];
-            var bloggerRssFeed = configuration["BloggerRssFeed"];
+            var blogspotUrl = configuration["BlogspotUrl"];
 
-            if(String.IsNullOrEmpty(outputFolder) || String.IsNullOrEmpty(bloggerRssFeed)){
-                Console.WriteLine("appsettings.json must have OutputFolder and BloggerRssFeed set.");
+            if(String.IsNullOrEmpty(outputFolder) || String.IsNullOrEmpty(blogspotUrl)){
+                Console.WriteLine("appsettings.json must have OutputFolder and BlogspotUrl set.");
                 return;
             }
 
             var job = Job.GetInstance();
 
-            job.Work(outputFolder, bloggerRssFeed, new Logger());
+            job.Work(outputFolder, blogspotUrl, new Logger());
         }
     }
 }
