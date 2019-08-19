@@ -3,22 +3,26 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using BlogspotToHtmlBook.Infrastructure;
 using BlogspotToHtmlBook.Model;
+using BlogspotToStaticWeb.Infrastructure;
 using HtmlAgilityPack;
 
 namespace BlogspotToHtmlBook.Services {
     public class ScrapperService {
 
         private readonly ILogger Logger;
+        private readonly IStorage Storage;
 
         private long imageFilenameKey;
 
-        public ScrapperService(ILogger logger) {
+        public ScrapperService(ILogger logger, IStorage storage) {
             Logger = logger;
+            Storage = storage;
         }
 
-        public IList<BlogPost> DoScrapping(Queue<string> blogPostsUrls, DirectoryInfo imagesOutputFolder) {
+        public async Task<IList<BlogPost>> DoScrapping(Queue<string> blogPostsUrls, string imagesRelativePath, Guid imagesOutputFolder) {
 
             imageFilenameKey = 0;
 
@@ -26,14 +30,14 @@ namespace BlogspotToHtmlBook.Services {
             var blogpostId = 1;
 
             foreach (string blogPostUrl in blogPostsUrls) {
-                blogPosts.Add(GetBlogPost(blogPostUrl, blogpostId, imagesOutputFolder));
+                blogPosts.Add(await GetBlogPost(blogPostUrl, blogpostId, imagesRelativePath, imagesOutputFolder));
                 blogpostId++;
             }
 
             return blogPosts;
         }
 
-        private BlogPost GetBlogPost(string url, int blogpostId, DirectoryInfo imagesOutputFolder) {
+        private async Task<BlogPost> GetBlogPost(string url, int blogpostId, string imagesRelativePath, Guid imagesOutputFolder) {
             
             Logger.Debug($"Getting blog post: { url }");
 
@@ -58,14 +62,14 @@ namespace BlogspotToHtmlBook.Services {
                 throw new ArgumentException($"Can't get post body: { url }");
             }
 
-            var postBodyWithLocalImages = LoadImagesAndChangeHtmlFromPostBody(postBody.InnerHtml, imagesOutputFolder);
+            var postBodyWithLocalImages = await LoadImagesAndChangeHtmlFromPostBody(postBody.InnerHtml, imagesRelativePath, imagesOutputFolder);
 
             var post = new BlogPost(id: blogpostId, title: postTitle.InnerText, date: postDate.InnerText, bodyHtml: postBodyWithLocalImages, url: url);
 
             return post;
         }
 
-        private string LoadImagesAndChangeHtmlFromPostBody(string bodyHtml, DirectoryInfo imagesOutputFolder) {
+        private async Task<string> LoadImagesAndChangeHtmlFromPostBody(string bodyHtml, string imagesRelativePath, Guid imagesOutputFolder) {
             
             HtmlDocument htmlDocument = new HtmlDocument();
             htmlDocument.LoadHtml(bodyHtml);
@@ -92,20 +96,16 @@ namespace BlogspotToHtmlBook.Services {
                     filename = $"{ imageFilenameKey }.{ filename.Split('.').Last() }";
                     imageFilenameKey++;
 
-                    string filePath = Path.Combine(imagesOutputFolder.ToString(), filename);
-
-                    if (File.Exists(filePath)) {
-                        throw new Exception($"Image download to file. Filepath already exists: { filePath }");
-                    }
-
                     using (WebClient client = new WebClient()) {
-                        client.DownloadFile(new Uri(href), filePath);
+                        var imageData = await client.DownloadDataTaskAsync(new Uri(href));
+
+                        await Storage.WriteFile(filename, imageData, imagesOutputFolder);
                     }
 
                     if (aTag) {
-                        img.ParentNode.SetAttributeValue("href", "images/" + filename); //a tag
+                        img.ParentNode.SetAttributeValue("href", $"{imagesRelativePath}/{filename}"); //a tag
                     }
-                    img.SetAttributeValue("src", "images/" + filename); //img tag
+                    img.SetAttributeValue("src", $"{imagesRelativePath}/{filename}"); //img tag
                 }
 
                 Logger.Debug($"Total images downloaded: { imgs.Count() }");

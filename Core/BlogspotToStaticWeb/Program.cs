@@ -1,12 +1,14 @@
 ﻿using System;
+using System.Threading.Tasks;
 using BlogspotToHtmlBook.Infrastructure;
+using BlogspotToStaticWeb.Infrastructure;
 using Microsoft.Extensions.Configuration;
 
 namespace BlogspotToStaticWeb
 {
     class Program
     {
-        static void Main(string[] args)
+        public async static Task Main(string[] args)
         {
             var configuration = new ConfigurationBuilder()
                               .AddJsonFile("appsettings.json")
@@ -20,9 +22,9 @@ namespace BlogspotToStaticWeb
                 return;
             }
 
-            var job = Job.GetInstance();
+            var job = new Job(new Logger(), new FileSystem(outputFolder));
 
-            job.Work(outputFolder, blogspotUrl, new Logger());
+            await job.Work(blogspotUrl);
         }
     }
 }
