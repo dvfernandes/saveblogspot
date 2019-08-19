@@ -6,6 +6,7 @@ using System.Net;
 using System.Threading.Tasks;
 using BlogspotToHtmlBook.Infrastructure;
 using BlogspotToHtmlBook.Model;
+using BlogspotToStaticWeb.Domain;
 using BlogspotToStaticWeb.Infrastructure;
 using HtmlAgilityPack;
 
@@ -26,21 +27,24 @@ namespace BlogspotToHtmlBook.Services {
 
             imageFilenameKey = 0;
 
-            var blogPosts = new List<BlogPost>();
+            var blogPosts = new List<AuditBlogPost>();
             var blogpostId = 1;
 
             foreach (string blogPostUrl in blogPostsUrls) {
-                blogPosts.Add(await GetBlogPost(blogPostUrl, blogpostId, imagesRelativePath, imagesOutputFolder));
+                var blogPost = await GetBlogPost(blogPostUrl, blogpostId, imagesRelativePath, imagesOutputFolder);
+                blogPosts.Add(blogPost);
                 blogpostId++;
+
+                Logger.Debug($"The blog post with total images '{ blogPost.NumberOfImages }' was downloaded: { blogPost.BlogPost.Url }");
             }
 
-            return blogPosts;
+            Logger.Debug($"Scrapping finished. Total images: '{ blogPosts.Sum(b => b.NumberOfImages) }'. Total posts: { blogPosts.Count() }");
+
+            return blogPosts.Select(b => b.BlogPost).ToList();
         }
 
-        private async Task<BlogPost> GetBlogPost(string url, int blogpostId, string imagesRelativePath, Guid imagesOutputFolder) {
+        private async Task<AuditBlogPost> GetBlogPost(string url, int blogpostId, string imagesRelativePath, Guid imagesOutputFolder) {
             
-            Logger.Debug($"Getting blog post: { url }");
-
             HtmlWeb web = new HtmlWeb();
             HtmlDocument doc = web.Load(url);
 
@@ -64,12 +68,12 @@ namespace BlogspotToHtmlBook.Services {
 
             var postBodyWithLocalImages = await LoadImagesAndChangeHtmlFromPostBody(postBody.InnerHtml, imagesRelativePath, imagesOutputFolder);
 
-            var post = new BlogPost(id: blogpostId, title: postTitle.InnerText, date: postDate.InnerText, bodyHtml: postBodyWithLocalImages, url: url);
+            var post = new BlogPost(id: blogpostId, title: postTitle.InnerText, date: postDate.InnerText, bodyHtml: postBodyWithLocalImages.htmlBody, url: url);
 
-            return post;
+            return new AuditBlogPost(post, postBodyWithLocalImages.imageTotal);
         }
 
-        private async Task<string> LoadImagesAndChangeHtmlFromPostBody(string bodyHtml, string imagesRelativePath, Guid imagesOutputFolder) {
+        private async Task<(string htmlBody, int imageTotal)> LoadImagesAndChangeHtmlFromPostBody(string bodyHtml, string imagesRelativePath, Guid imagesOutputFolder) {
             
             HtmlDocument htmlDocument = new HtmlDocument();
             htmlDocument.LoadHtml(bodyHtml);
@@ -108,13 +112,9 @@ namespace BlogspotToHtmlBook.Services {
                     img.SetAttributeValue("src", $"{imagesRelativePath}/{filename}"); //img tag
                 }
 
-                Logger.Debug($"Total images downloaded: { imgs.Count() }");
-
-                return htmlDocument.DocumentNode.OuterHtml;
+                return (htmlDocument.DocumentNode.OuterHtml, imgs.Count());
             } else {
-                Logger.Debug($"No images were downloaded.");
-
-                return bodyHtml;
+                return (bodyHtml, 0);
             }
         }
     }

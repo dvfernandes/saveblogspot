@@ -22,7 +22,7 @@ namespace BlogspotToStaticWeb
                 return;
             }
 
-            var job = new Job(new Logger(), new FileSystem(outputFolder));
+            var job = new Job(new ConsoleLogger(), new FileSystem(outputFolder));
 
             await job.Work(blogspotUrl);
         }
