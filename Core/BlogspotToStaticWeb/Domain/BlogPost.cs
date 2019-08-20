@@ -4,12 +4,12 @@ using System.Text;
 namespace BlogspotToHtmlBook.Model {
     public class BlogPost {
 
-        public readonly int Id;
-        public readonly string Title;
-        public readonly string Date;
-        public readonly string BodyHtml;
-        public readonly string Url;
-        public readonly string FileName;
+        public int Id { get; }
+        public string Title { get; }
+        public string Date { get; }
+        public string BodyHtml { get; }
+        public string Url { get; }
+        public string FileName { get; }
 
         public BlogPost(int id, string title, string date, string bodyHtml, string url) {
             Id = id;

@@ -2,8 +2,8 @@
 
 namespace BlogspotToStaticWeb.Domain {
     public class AuditBlogPost {
-        public readonly BlogPost BlogPost;
-        public readonly int NumberOfImages;
+        public BlogPost BlogPost { get; }
+        public int NumberOfImages { get; }
 
         public AuditBlogPost(BlogPost blogPost, int numberOfImages) {
             BlogPost = blogPost;
