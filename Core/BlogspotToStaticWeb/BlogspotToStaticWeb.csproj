@@ -16,8 +16,11 @@
   
   <ItemGroup>
     <Content Include="appsettings.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>  
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="features.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

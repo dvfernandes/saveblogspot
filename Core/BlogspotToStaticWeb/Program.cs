@@ -14,6 +14,10 @@ namespace BlogspotToStaticWeb
                               .AddJsonFile("appsettings.json")
                               .Build();
 
+            var features = new ConfigurationBuilder()
+                              .AddJsonFile("features.json")
+                              .Build();
+
             var outputFolder = configuration["OutputFolder"];
             var blogspotUrl = configuration["BlogspotUrl"];
 
@@ -22,7 +26,10 @@ namespace BlogspotToStaticWeb
                 return;
             }
 
-            var job = new Job(new ConsoleLogger(), new FileSystem(outputFolder));
+            var job = new Job(
+                new ConsoleLogger(), 
+                new FileSystem(outputFolder), 
+                new Features(features["CreateFileForEachBlogEntry"] == "on", features["CreateExternalContentIndex"] == "on"));
 
             await job.Work(blogspotUrl);
         }

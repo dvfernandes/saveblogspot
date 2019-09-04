@@ -17,10 +17,12 @@ namespace BlogspotToStaticWeb
     {
         private readonly ILogger Logger;
         private readonly IStorage Storage;
+        private readonly IFeatures Features;
 
-        public Job(ILogger logger, IStorage storage) {
+        public Job(ILogger logger, IStorage storage, IFeatures features) {
             Logger = logger;
             Storage = storage;
+            Features = features;
         }
 
         public async Task CreateIndex(IList<BlogPost> postCollection)
@@ -134,11 +136,17 @@ namespace BlogspotToStaticWeb
             var imageDirId = await Storage.CreateDirectory(imageDirectoryName);
             var postCollection = await scrapper.DoScrapping(allBlogPosts, imageDirectoryName, imageDirId);
 
-            await CreatePostsInFileSystem(postCollection);
-            await CreateExternalSourcesIndex(postCollection);
-            await CreateFullBook(postCollection);
-            await CreateIndex(postCollection);
+            if (Features.CreateFileForEachBlogEntry) {
+                await CreatePostsInFileSystem(postCollection);
+                await CreateIndex(postCollection);
+            }
 
+            if (Features.CreateExternalContentIndex) {
+                await CreateExternalSourcesIndex(postCollection);
+            }
+
+            await CreateFullBook(postCollection);
+            
             stopwatch.Stop();
 
             Logger.Debug($"Finished. Number of posts downloaded: {  postCollection.Count }. Total minutes: { Convert.ToInt32(stopwatch.Elapsed.TotalMinutes) }");

@@ -3,3 +3,5 @@ bin/
 obj/
 .vs/
 *.code-workspace
+Properties/
+*csproj.user
