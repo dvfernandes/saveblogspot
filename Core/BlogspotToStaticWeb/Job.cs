@@ -99,7 +99,7 @@ namespace BlogspotToStaticWeb
 
         public async Task CreateFullBook(IList<BlogPost> postCollection) {
 
-            StringBuilder fullText = new StringBuilder("<hml><head><title>The Book</title></head><body>");
+            StringBuilder fullText = new StringBuilder("<hml><head><meta charset='utf-8'/><title>The Book</title></head><body>");
             //when priting, each post will be a new page
             fullText.Append("<style>@media print { h1 { page-break-before: always; } }</style>");
 

@@ -29,7 +29,7 @@ namespace BlogspotToHtmlBook.Model {
         }
 
         public string GetPostAsHtmlPage() {
-            StringBuilder html = new StringBuilder($"<hml><head><title>{ Title }</title></head><body>");
+            StringBuilder html = new StringBuilder($"<hml><head><meta charset='utf-8'/><title>{ Title }</title></head><body>");
             html.Append(GetPostAsHtml());
             html.Append("</body></hml>");
 
