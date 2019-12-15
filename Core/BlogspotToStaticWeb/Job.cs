@@ -10,7 +10,7 @@ using BlogspotToHtmlBook.Model;
 using BlogspotToHtmlBook.Services;
 using BlogspotToStaticWeb.Infrastructure;
 using HtmlAgilityPack;
-
+ 
 namespace BlogspotToStaticWeb
 {
     public class Job
